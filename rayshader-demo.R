@@ -6,10 +6,8 @@
 
 #install.packages("rayshader")
 #install.packages("leaflet")
-#install.packages("rgdal")
 library(rayshader)
 library(leaflet)
-library(rgdal)
 
 # source extra functions from rayshader demo
 if (!dir.exists("data")){ 

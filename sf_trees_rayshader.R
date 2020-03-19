@@ -22,31 +22,36 @@ if (!dir.exists("images")){dir.create("images")}
 #### Download and extract tree data ####
 
 # download data
-tt_data<-tt_load("2020-01-28")
-sf_trees_raw <- tt_data$sf_trees
-
-# identify extent of tree data in lat/lon
-summary(sf_trees_raw[c("latitude","longitude")])
-hist(sf_trees_raw$latitude)
-hist(sf_trees_raw$longitude)
-
-# data filtering and cleaning (with help from Shashi!)
-sf_trees <- sf_trees_raw %>% 
-  # remove trees missing data for species
-  filter(species != "::" & species != "Tree(s) ::" ) %>% 
-  # remove trees with no geospatial data
-  filter(!is.na(latitude)) %>% 
-  filter(!is.na(longitude)) %>% 
-  # narrow scope of map
-  filter(latitude > 37.71, latitude < 37.81) %>% # narrow the map
-  filter(longitude < -122.36, longitude > -122.54) %>% 
-  # remove trees with missing dbh
-  filter(!is.na(dbh)) %>%
-  filter(dbh < 9999) %>% # errant monster 
-  # add placeholder date for old trees, split latin and common names
-  mutate(date = replace_na(date, as.Date("1954-01-01")), 
-         species_latin = str_extract(species, "^[\\w\\'\\s]+"), 
-         species_common = str_extract(species, "[\\w\\'\\s]+$")) 
+if (file.exists("data/sf_trees_filtered.csv")){
+  sf_trees <- read_csv("data/sf_trees_filtered.csv")
+} else {
+  tt_data<-tt_load("2020-01-28")
+  sf_trees_raw <- tt_data$sf_trees
+  
+  # identify extent of tree data in lat/lon
+  summary(sf_trees_raw[c("latitude","longitude")])
+  hist(sf_trees_raw$latitude)
+  hist(sf_trees_raw$longitude)
+  
+  # data filtering and cleaning (with help from Shashi!)
+  sf_trees <- sf_trees_raw %>% 
+    # remove trees missing data for species
+    filter(species != "::" & species != "Tree(s) ::" ) %>% 
+    # remove trees with no geospatial data
+    filter(!is.na(latitude)) %>% 
+    filter(!is.na(longitude)) %>% 
+    # narrow scope of map
+    filter(latitude > 37.71, latitude < 37.81) %>% # narrow the map
+    filter(longitude < -122.36, longitude > -122.54) %>% 
+    # remove trees with missing dbh
+    filter(!is.na(dbh)) %>%
+    filter(dbh < 9999) %>% # errant monster 
+    # add placeholder date for old trees, split latin and common names
+    mutate(date = replace_na(date, as.Date("1954-01-01")), 
+           species_latin = str_extract(species, "^[\\w\\'\\s]+"), 
+           species_common = str_extract(species, "[\\w\\'\\s]+$")) 
+  write_csv(sf_trees, "data/sf_trees_filtered.csv")
+}
 
 # impute missing data for dbh 
 #sf_trees <- impute_median(sf_trees, dbh ~ species_common)
@@ -92,8 +97,11 @@ leaflet() %>%
 image_size <- define_image_size(bbox, major_dim = 600)
 
 # download elevation data
-elev_file <- file.path("data", "tree-elevation.tif")
-get_usgs_elevation_data(bbox, size = image_size$size, file = elev_file, sr_bbox = 4326, sr_image = 4326)
+if (file.exists("data/tree-elevation.tif")){
+} else {
+  elev_file <- file.path("data", "tree-elevation.tif")
+  get_usgs_elevation_data(bbox, size = image_size$size, file = elev_file, sr_bbox = 4326, sr_image = 4326)
+}
 
 # load elevation data
 elev_img <- raster::raster(elev_file)
@@ -152,4 +160,3 @@ elev_matrix %>%
 # add label
 render_label(elev_matrix, x = label$pos$x, y = label$pos$y, z = 200, zscale = zscale, text = label$text, textsize = 2, linewidth = 5)
 render_snapshot()
-ggsave("biggest_tree.pdf")

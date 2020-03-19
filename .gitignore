@@ -1,10 +1,7 @@
 .DS_Store
 rayshader-demo/
-data/
-images/
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
 .Renviron
-
